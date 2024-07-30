@@ -1,0 +1,26 @@
+/* custom.css */
+
+/* 设置全局背景颜色为黑色 */
+body {
+    background-color: black;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    color: white; /* 设置字体颜色为白色 */
+}
+
+/* 主容器样式 */
+#main-container {
+    background-color: white; /* 主容器背景颜色 */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+    width: 800px; /* 根据需要调整宽度 */
+}
+
+/* 其他样式可以根据需要添加 */

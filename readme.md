@@ -1,0 +1,190 @@
+本文档将指导你如何使用 HTML、JavaScript 和 CSS 创建一个基于 jsPsych 的 Stroop 实验。我们将分为以下几个部分：
+
+1. HTML 文件
+2. JavaScript 文件
+3. CSS 文件
+
+## 1. HTML 文件
+
+首先，创建一个 HTML 文件，命名为 `index.html`。在这个文件中，我们将引入 jsPsych 库及其插件，并加载我们的实验脚本和样式表。
+
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stroop </title>
+    <script src="https://unpkg.com/jspsych@7.3.4"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.2.1"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.3"></script>
+    
+    <link rel="icon" href="sources/icon.png" type="image/png">
+    <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="css/custom.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://unpkg.com/@jspsych/plugin-survey@1.0.1/css/survey.css">
+    <link rel="stylesheet" href="./abc.css"/>
+</head>
+
+<body>
+     <div id="main-container">
+        <script src="./stroop.js"></script> <!-- 载入exp.js -->
+    </div>
+</body>
+</html>
+```
+
+## 2. JavaScript 文件
+
+接下来，创建一个 JavaScript 文件，命名为 `stroop.js`。这个文件将包含我们的实验逻辑，包括全屏模式、指导语、练习实验、以及结束语。
+
+```
+javascript复制代码let jsPsych = initJsPsych({
+    override_safe_mode: true
+});
+
+let open_fullscreen = {   
+    type: jsPsychFullscreen,   
+    fullscreen_mode: true,
+    button_label: '进入全屏',
+    delay_after: 1000,
+    // 指导语呈现完毕，鼠标消失
+    on_finish: function () {
+        var bodyNode = document.getElementsByTagName("body");
+        for (let i = 0; i < bodyNode.length; i++) {
+            bodyNode[i].style.cursor = "none";
+        }
+    },
+    show_clickable_nav: true
+};
+
+let pre_instruction = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <div>
+        <p> 现在是一个练习实验</p>
+        <p>在实验中，屏幕中央会呈现一个词语，该词语表示一种颜色。</p>
+        <p>你的任务是忽略词语的含义，尽快按键报告词语的字体颜色。</p>
+        <p>如果词语的字体颜色是<span style="color: red;">红色</span>，请按 A 键</p>
+        <p>如果词语的字体颜色是<span style="color: green;">绿色</span>，请按 D 键</p>
+        <p>如果词语的字体颜色是<span style="color: yellow;">黄色</span>，请按 J 键</p>
+        <p>如果词语的字体颜色是<span style="color: blue;">蓝色</span>，请按 L 键</p>
+        <p>按空格键开始实验</p>
+    </div>
+    `,
+    choices: " ",
+    post_trial_gap: 500
+};
+
+let timeline =[open_fullscreen, pre_instruction];
+
+let fixation = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: '<p style="font-size: 36px;">+</p>',
+    choices: "NO_KEYS",
+    trial_duration: 500
+};
+
+let practice_stimuli = [
+    { stimulus: '<p style="color: red;">红</p>', correct_response: 'a' },
+    { stimulus: '<p style="color: green;">红</p>', correct_response: 'd' },
+    { stimulus: '<p style="color: red;">绿</p>', correct_response: 'a' },
+    { stimulus: '<p style="color: green;">绿</p>', correct_response: 'd' },
+    { stimulus: '<p style="color: yellow;">黄</p>', correct_response: 'j' },
+    { stimulus: '<p style="color: yellow;">蓝</p>', correct_response: 'j' },
+    { stimulus: '<p style="color: blue;">黄</p>', correct_response: 'l' },
+    { stimulus: '<p style="color: blue;">蓝</p>', correct_response: 'l' }
+];
+
+let practice_trial = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function() {
+        let stimulus = jsPsych.timelineVariable('stimulus');
+        // 使用一个带有样式的 div 包裹刺激，设置字号为 45px
+        return `<div style="font-size: 45px;">${stimulus}</div>`;
+    },
+    choices: ['a','d','j', 'l'],
+    trial_duration: 1500,
+    data: {
+        correct_response: jsPsych.timelineVariable('correct_response')
+    },
+    on_finish: function(data) {
+        data.correct = data.response == data.correct_response;
+    }
+};
+
+let practice_procedure = {
+    timeline: [
+        fixation,
+        practice_trial
+    ],
+    timeline_variables: practice_stimuli,
+    sample: {
+        type: 'fixed-repetitions',
+        size: 10
+    },
+    randomize_order: true
+};
+
+timeline.push(practice_procedure);
+
+// 退出全屏模式
+let quitFullscreenMode = {
+    type: jsPsychFullscreen,
+    fullscreen_mode: false,
+    // 全部结束，鼠标出现
+    on_finish: function () {
+        var bodyNode = document.getElementsByTagName("body");
+        for (let i = 0; i < bodyNode.length; i++) {
+            bodyNode[i].style.cursor = "default";
+        }
+    }
+};
+
+timeline.push(quitFullscreenMode);
+
+let end_message_trial = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: '感谢您的参与，请您关闭网页即可。',
+    choices: "NO_KEYS",
+    trial_duration: 5000  // 显示结束语的时间，单位为毫秒
+};
+
+timeline.push(end_message_trial);
+
+jsPsych.run(timeline);
+```
+
+## 3. CSS 文件
+
+最后，创建一个 CSS 文件，命名为 `custom.css`。这个文件将定义实验的样式，包括背景颜色、字体颜色和主容器样式。
+
+```
+css复制代码/* custom.css */
+
+/* 设置全局背景颜色为黑色 */
+body {
+    background-color: black;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    color: white; /* 设置字体颜色为白色 */
+}
+
+/* 主容器样式 */
+#main-container {
+    background-color: white; /* 主容器背景颜色 */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+    width: 800px; /* 根据需要调整宽度 */
+}
+
+/* 其他样式可以根据需要添加 */
+```
+
+至此，你已经完成了 Stroop 实验的所有设置。
